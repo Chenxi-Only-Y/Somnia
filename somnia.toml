@@ -1,0 +1,147 @@
+# Somnia·眠 行为参数
+#
+# 优先级：环境变量 > data/settings.json（面板）> 本文件 > 代码默认
+# ⚠ 面板里存的会盖住这里。改了不生效，先去面板看一眼。
+#
+# 常见需求 → 改哪一段
+#   她回得太少 / 太多        → [behavior] reply_rate
+#   回得太慢 / 太快          → [behavior] delay_median
+#   凌晨被吵醒               → [behavior] quiet_hours / wake_chance
+#   太爱主动找你             → [proactive] silence_hours / proactive_max_per_day
+#   老发同一张图             → [behavior] sticker_offer_prob / photo_offer_prob
+#   记性不好 / 太啰嗦         → [memory] recent_n / recall_k
+#   聊久了想不起来细节        → [memory] hot_days / recall_limit
+#
+# 人设不在这个文件里，在 persona/persona.md
+
+[identity]
+# 角色名。留空就用 "ta" 显示，prompt 里也不会出现名字。
+# 名字不参与 prompt —— 想让它生效要配合 [identity] prompt_persona = true
+name = ""
+# persona_dir = "persona"      # 人设文件夹，默认就是仓库里的 persona/
+# 人设正文要不要发进 prompt。默认 false —— 人设归控制台管，prompt 只带硬规则。
+# 想让"ta 是谁"里写的文字直接影响回复，就改成 true
+prompt_persona = false
+
+[behavior]
+# ── 回复率 ────────────────────────────────────────────
+# 永远是"大部分回、偶尔不回"，不要设成 1.0
+reply_rate = 0.88
+# 连着回得越多，下一次越可能继续回：聊得正顺的时候不该忽然消失
+reply_rate_step = 0.03
+reply_rate_max = 0.98
+
+# ── 睡觉 ──────────────────────────────────────────────
+# 静默时段 [开始小时, 结束小时)。2 点到 7 点之间不回
+quiet_hours = [2, 7]
+# 被吵醒：第一条 10%，之后每回一次 +20%，上限 90%
+wake_chance = 0.10
+wake_chance_step = 0.20
+wake_chance_max = 0.90
+wake_max_per_night = 0     # 0 = 不限制次数
+
+# ── 延迟（秒）─────────────────────────────────────────
+# 对数正态：中位数 + 离散度。秒回是最大的破绽。
+# 11s/0.55 会长尾到 35-40 秒，体感就是"半天不回"；5s/0.45 像想了想
+delay_median = 5.0
+delay_sigma = 0.45
+delay_max = 20.0
+
+# ── 断句 ──────────────────────────────────────────────
+# 连发条数分布。列表里有几个就按权重抽
+seg_choices = [1, 1, 1, 2, 2, 2, 3]
+# 条间隔（秒），太短会被折叠
+seg_gap = [1.2, 2.4]
+# 连发合并窗口（秒）：这段时间内的多条消息算一次
+debounce = 1.5
+# 单条字数上限
+max_len = 26
+
+# ── 表情包 ────────────────────────────────────────────
+# 库存小、复用高，不是每次都不一样
+sticker_enabled = true
+sticker_offer_prob = 0.35   # 有多少比例的回合把表情清单给她挑（真正的频率由这个控制）
+sticker_prob = 0.18         # 离线模式（没模型）时随机补一张的概率
+# sticker_dir = "stickers"
+
+# ── 照片 ──────────────────────────────────────────────
+# 她自己决定什么时候给你看眼前的东西
+photo_enabled = true
+photo_offer_prob = 0.12     # 概率低一些 —— 发照片比发表情更"重"
+# photo_dir = "photos"
+
+# 库里没有就现场生成一张（本机 local-gen，不花钱）
+image_gen_enabled = true
+image_gen_cooldown_min = 0    # 不冷却：频率靠 photo_offer_prob 和日上限控
+image_gen_max_per_day = 6     # 再低就不像活人了
+
+# ── 禁词 ──────────────────────────────────────────────
+# 命中就删掉，这是反 AI 味的第一道闸
+banned = [
+  "听起来", "我理解", "抱抱你", "你辛苦了", "希望能帮到",
+  "作为一", "首先", "其次", "总之", "记得照顾好自己",
+]
+
+[memory]
+# ── 0-3 天：细节 ──────────────────────────────────────
+hot_days = 3               # 这几天之内留原文，直接进 prompt
+recent_n = 400             # 细节层一次最多读多少条（安全阀）
+recent_days = 3            # 同上，按天算
+
+# ── 3-7 天：印象 ──────────────────────────────────────
+impression_days = 7        # 读最近几天的每日印象
+summary_days = 3           # 旧字段，短窗口，一般不用改
+
+# ── 7-30 天：只剩印象 ─────────────────────────────────
+summary_keep_days = 30     # 印象在库里留多久；更早的只有档案文件
+
+# ── 旧的 400 条压缩，已停用 ───────────────────────────
+compress_enabled = false
+compress_batch = 200
+chronicle_keep = 6
+
+# ── 想起来 ────────────────────────────────────────────
+recall_enabled = true      # 说到旧事 / 追问时，去 memory/archive/ 里翻
+recall_limit = 3           # 一次最多翻出几段
+
+# ── 事实 ──────────────────────────────────────────────
+recall_k = 0               # 读多少条事实；0 = 全部（进 prompt 前再筛）
+fact_half_life_days = 30.0 # 事实记忆半衰期：30 天前的权重减半
+
+[proactive]
+# ── 沉默触发 ──────────────────────────────────────────
+silence_hours = 2          # 你多久没说话，她开始想开口（有概率）
+proactive_guarantee_hours = 6   # 到这个点必发
+# 沉默越久越可能开口（每 10 分钟检查一次的单次概率）：
+#   2h → 2%   3h → 26%   4h → 51%   5h → 75%   6h → 必发
+proactive_base_chance = 0.02
+outbox_threshold = 0.6     # 念头分数达到多少才算"值得说"
+proactive_max_per_day = 2  # 一天最多主动说几次（再多就烦了）
+
+# ── 承诺 ──────────────────────────────────────────────
+# 九成按时兑现，剩下一成往后拖两个半小时（归因于"被事绊住"，不是"忘了"）
+promise_keep_rate = 0.9
+promise_delay_h = 2.5
+
+# ── 晚间问候 ──────────────────────────────────────────
+# 一整天没聊，20-22 点之间她一定来问一句。这是"有事"，不走概率
+evening_checkin = true
+evening_window = [20, 22]
+
+# ── 补回复 ────────────────────────────────────────────
+# 她当时没回，过几分钟自己补一句
+catchup_enabled = true
+catchup_delay_s = 240      # 4 分钟后补
+catchup_max_age_s = 10800  # 超过 3 小时就别补了，太晚了
+scheduler_interval_min = 10  # 后台检查间隔（分钟）
+
+[model]
+model = "deepseek-flash"     # 官方现在叫 deepseek-flash；老名字 deepseek-chat 也还能用
+temperature = 1.15
+
+[update]
+# 新版本检查地址：一个 version.json 的网址（字段名就叫 update_url）。
+# 填了之后，面板左下角会在有新版本时显示「↓ 新版本」，点一下就能更新。
+# 留空 = 不检查（用户照样可以用 update.bat 手动更新）
+# 可以写多个（逗号或空格隔开），挨个试 —— 国内 raw.githubusercontent.com 常常不通
+update_url = "https://raw.githubusercontent.com/Chenxi-Only-Y/Somnia/main/version.json,https://cdn.jsdelivr.net/gh/Chenxi-Only-Y/Somnia@main/version.json"

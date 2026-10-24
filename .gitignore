@@ -1,0 +1,13 @@
+.env
+data/
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+memory/
+# 表情包是随包发的内容（91 张 + 备注），别忽略
+photos/
+*.log
+wechatauto_logs/
+persona/persona.md

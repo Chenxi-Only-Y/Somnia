@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "somnia"
+version = "1.0.0"
+description = "Somnia —— 一个话不多、记得住事、有作息的人"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+# 通道已改为 OpenClaw Weixin，走 urllib，无需额外依赖
+
+[project.scripts]
+somnia = "somnia.app:main"
+
+[tool.setuptools.packages.find]
+include = ["somnia*"]
